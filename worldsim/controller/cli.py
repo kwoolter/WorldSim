@@ -22,6 +22,7 @@ class WSCLI(cmd.Cmd):
 
     def do_start(self, arg):
         args = arg.split(" ")
+        print(">>{0}<<".format(args[0]))
         self.model.initialise(args[0])
         self.print_events()
 
@@ -35,6 +36,9 @@ class WSCLI(cmd.Cmd):
 
         self.print_events()
 
+    def do_print(self, args):
+
+        self.model.print()
 
     def do_quit(self, arg):
         """Quit the game"""
