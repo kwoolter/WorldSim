@@ -76,7 +76,7 @@ class World():
         # Tick the Stat Engine
         self._stats.update_stat(WorldStats.INPUT_TICK_COUNT, self._tick_count)
 
-        # See if any of the event stats fires as a result if the tick...
+        # See if any of the event stats fired as a result if the tick...
         for event_stat_name in WorldStats.EVENTS:
             stat = self._stats.get_stat(event_stat_name)
             if stat.value is True:

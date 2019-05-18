@@ -20,17 +20,21 @@ class CurrentYear(DerivedStat):
 class CurrentSeason(DerivedStat):
     NAME = "Current Season"
 
+    ERROR = 0
     WINTER = 1
-    GROWING = 2
-    HARVESTING = 3
+    SPRING = 2
+    SUMMER = 3
+    AUTUMN = 4
 
     season_number_to_name = {
+        ERROR: "ERROR!!!!",
         WINTER: "Winter",
-        GROWING: "Growing",
-        HARVESTING: "Harvesting"
+        SPRING: "Summer",
+        SUMMER: "Summer",
+        AUTUMN: "Autumn"
     }
 
-    SEASONS_PER_YEAR = 3
+    SEASONS_PER_YEAR = 4
 
     def __init__(self):
         super(CurrentSeason, self).__init__(CurrentSeason.NAME, "GAME")
@@ -46,7 +50,7 @@ class CurrentSeason(DerivedStat):
 class DayOfYear(DerivedStat):
     NAME = "Day of Year"
 
-    TICKS_PER_DAY = 2
+    TICKS_PER_DAY = 4
 
     def __init__(self):
         super(DayOfYear, self).__init__(DayOfYear.NAME, "GAME")
@@ -59,6 +63,37 @@ class DayOfYear(DerivedStat):
         return ((tick_count) // DayOfYear.TICKS_PER_DAY % CurrentYear.DAYS_PER_YEAR) + 1
 
 
+class HourOfDay(DerivedStat):
+    NAME = "Hour of Day"
+
+    def __init__(self):
+        super(HourOfDay, self).__init__(HourOfDay.NAME, "GAME")
+
+        self.add_dependency(WorldStats.INPUT_TICK_COUNT)
+
+    def calculate(self):
+        tick_count = self.get_dependency_value(WorldStats.INPUT_TICK_COUNT)
+
+        return (tick_count % DayOfYear.TICKS_PER_DAY) + 1
+
+
+class DayChanged(DerivedStat):
+    NAME = "Day Change"
+
+    def __init__(self):
+        super(DayChanged, self).__init__(DayChanged.NAME, "GAME")
+
+        self.add_dependency(DayOfYear.NAME)
+        self._last_day = 1
+
+    def calculate(self):
+        current_day = self.get_dependency_value(DayOfYear.NAME)
+        is_changed = (current_day != self._last_day)
+
+        self._last_day = current_day
+
+        return is_changed
+
 class SeasonChanged(DerivedStat):
     NAME = "Season Change"
 
@@ -66,7 +101,7 @@ class SeasonChanged(DerivedStat):
         super(SeasonChanged, self).__init__(SeasonChanged.NAME, "GAME")
 
         self.add_dependency(CurrentSeason.NAME)
-        self._last_season = 0
+        self._last_season = 1
 
     def calculate(self):
         current_season = self.get_dependency_value(CurrentSeason.NAME)
@@ -84,8 +119,7 @@ class YearChanged(DerivedStat):
         super(YearChanged, self).__init__(YearChanged.NAME, "GAME")
 
         self.add_dependency(CurrentYear.NAME)
-        # self.add_dependency(WorldStats.INPUT_TICK_COUNT)
-        self._last_year = 0
+        self._last_year = 1
 
     def calculate(self):
         current_year = self.get_dependency_value(CurrentYear.NAME)
@@ -103,8 +137,8 @@ class WorldStats(StatEngine):
     # Season level inputs
     INPUTS = (INPUT_TICK_COUNT, INPUT_TICK_COUNT)
 
-    # Event stats
-    EVENTS = (YearChanged.NAME, SeasonChanged.NAME)
+    # Event stats - order determines which gets fired first
+    EVENTS = (DayChanged.NAME, SeasonChanged.NAME, YearChanged.NAME)
 
     def __init__(self, name: str):
         super(WorldStats, self).__init__(name)
@@ -115,8 +149,10 @@ class WorldStats(StatEngine):
             self.add_stat(CoreStat(core_stat_name, "INPUTS", 0))
 
         # Add derived game stats
+        self.add_stat(DayOfYear())
+        self.add_stat(HourOfDay())
         self.add_stat(CurrentYear())
         self.add_stat(CurrentSeason())
-        self.add_stat(DayOfYear())
+        self.add_stat(DayChanged())
         self.add_stat(SeasonChanged())
         self.add_stat(YearChanged())
