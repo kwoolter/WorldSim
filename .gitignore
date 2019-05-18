@@ -7,3 +7,6 @@
 *.iml
 out
 gen
+worldsim/__pycache__/
+worldsim/controller/__pycache__/
+worldsim/model/__pycache__/

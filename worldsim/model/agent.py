@@ -1,9 +1,12 @@
+from .agent_stats import AgentStats
+
 class Agent:
 
     def __init__(self, name : str, type : str):
         self.name = name
         self.type = type
         self._tick_count = 0
+        self._stats = AgentStats(name)
 
     def tick(self):
         self._tick_count += 1

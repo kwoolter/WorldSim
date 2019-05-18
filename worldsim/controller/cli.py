@@ -20,21 +20,33 @@ class WSCLI(cmd.Cmd):
     def emptyline(self):
         pass
 
+    def postcmd(self, stop, line):
+        self.print_events()
+        return cmd.Cmd.postcmd(self, stop, line)
+
     def do_start(self, arg):
         args = arg.split(" ")
-        print(">>{0}<<".format(args[0]))
         self.model.initialise(args[0])
-        self.print_events()
+        self.model.run()
 
-    def do_tick(self, arg : str = "1"):
+    def do_pause(self, args):
+        self.model.pause(is_paused=True)
 
-        i = is_numeric(arg)
+    def do_run(self, args):
+        self.model.run()
+
+    def do_tick(self, arg):
+
+        if len(arg) == 0:
+            i = 1
+        else:
+            i = is_numeric(arg)
+
         if i is not None:
             for i in range (0, i):
                 self.model.tick()
                 #self.view.tick()
 
-        self.print_events()
 
     def do_print(self, args):
 
@@ -48,7 +60,6 @@ class WSCLI(cmd.Cmd):
                 print("\nThanks for playing.")
 
                 self.model.end()
-                self.print_events()
 
                 print("\nBye bye.")
 
