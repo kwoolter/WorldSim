@@ -52,6 +52,24 @@ class WSCLI(cmd.Cmd):
 
         self.model.print()
 
+    def do_eat(self, args):
+
+        name = pick("Agent", self.model.get_agent_names())
+        if name is not None:
+            food = int(input("Food to eat?"))
+            agent = self.model.get_agent(name)
+            agent.eat(food)
+
+
+    def do_sleep(self, args):
+
+        name = pick("Agent", self.model.get_agent_names())
+        if name is not None:
+            ticks = int(input("Amount of sleep?"))
+            agent = self.model.get_agent(name)
+            agent.sleep(ticks)
+
+
     def do_quit(self, arg):
         """Quit the game"""
         try:

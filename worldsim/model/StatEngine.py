@@ -103,10 +103,12 @@ class CoreStat(BaseStat):
 
     # Change the value of this stat and let all listeners know the new state
     def set_value(self, new_value: float):
-        self._value = new_value
 
-        for listener in self._listeners:
-            listener.update(self)
+        if new_value != self._value:
+            self._value = new_value
+
+            for listener in self._listeners:
+                listener.update(self)
 
     # A property style getter
     @property
@@ -255,7 +257,7 @@ class DerivedStat(CoreStat):
     def add_dependency(self, dependent_stat, optional: bool=False, default_value: float=0) -> object:
 
         self._baseStatNames.add(dependent_stat)
-        if optional:
+        if optional is True:
             self._baseStatDefaults[dependent_stat] = default_value
 
     # Retrieve the value of a specified dependency stat
