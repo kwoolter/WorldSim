@@ -1,6 +1,7 @@
 from .utils import EventQueue
 from .utils import Event
 from .agent import Agent
+from .agent_stats import AgentStats
 from .world_stats import *
 from .map import *
 
@@ -114,7 +115,7 @@ class World():
         self.pause(is_paused=False)
 
     def load_agents(self):
-        for i in range(0,4):
+        for i in range(0,2):
             new_agent = Agent("agent {0}".format(i), "default")
             self.add_agent(new_agent)
 
@@ -150,6 +151,16 @@ class World():
 
         for agent in self._agents.values():
             agent.tick()
+
+
+        for agent in self._agents.values():
+            # See if any of the event stats fired as a result if the tick...
+            for event_stat_name in AgentStats.EVENT_STATS:
+                stat = agent._stats.get_stat(event_stat_name)
+                if stat is not None and stat.value is True:
+                    EventQueue.add_event(Event(stat.name,
+                                               "Event stat fired: {0}={1}".format(stat.name, stat.value),
+                                               "EVENT"))
 
         # EventQueue.add_event(Event(World.EVENT_TICK,
         #                             "World '{0}' ticked to {1}".format(self.name, self._tick_count),

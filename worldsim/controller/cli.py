@@ -69,6 +69,13 @@ class WSCLI(cmd.Cmd):
             agent = self.model.get_agent(name)
             agent.sleep(ticks)
 
+    def do_examine(self, args):
+
+        name = pick("Agent", self.model.get_agent_names())
+        if name is not None:
+            agent = self.model.get_agent(name)
+            agent.examine()
+
 
     def do_quit(self, arg):
         """Quit the game"""
