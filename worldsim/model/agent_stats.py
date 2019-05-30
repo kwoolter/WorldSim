@@ -1,6 +1,23 @@
 from .StatEngine import *
 
 
+class TickingStat(DerivedStat):
+
+    def __init__(self, name : str, category : str):
+        super(TickingStat, self).__init__(name, category)
+
+        self.add_dependency(AgentStats.INPUT_TICK_COUNT)
+        self._last_tick = 0
+
+    def calculate(self):
+        new_tick = self.get_dependency_value(AgentStats.INPUT_TICK_COUNT)
+        if self._last_tick < new_tick:
+            self._last_tick = new_tick
+            return True
+        else:
+            return False
+
+
 class Age(DerivedStat):
     NAME = "Age"
 
@@ -16,7 +33,7 @@ class Age(DerivedStat):
         return self._age
 
 
-class Sleepiness(DerivedStat):
+class Sleepiness(TickingStat):
     NAME = "Sleepiness"
     MAX_SLEEPINESS = 100
     MIN_SLEEPINESS = 0
@@ -25,33 +42,37 @@ class Sleepiness(DerivedStat):
     def __init__(self):
         super(Sleepiness, self).__init__(Sleepiness.NAME, "AGENT")
 
-        self.add_dependency(AgentStats.INPUT_TICK_COUNT)
         self.add_dependency(AgentStats.INPUT_CURRENT_STATE)
         self.add_dependency(Energy.NAME)
         self._sleepiness = 0
 
     def calculate(self):
+        do_calc = super(Sleepiness, self).calculate()
 
-        state = self.get_dependency_value(AgentStats.INPUT_CURRENT_STATE)
-        energy = self.get_dependency_value(Energy.NAME)
+        if do_calc is True:
 
-        if state == AgentStats.STATE_ASLEEP and self._sleepiness > Sleepiness.MIN_SLEEPINESS:
-            self._sleepiness -= 1
+            state = self.get_dependency_value(AgentStats.INPUT_CURRENT_STATE)
+            energy = self.get_dependency_value(Energy.NAME)
 
-            if energy <= Sleepiness.ENERGY_LEVEL_THRESHOLD:
-                sleep_delta = 3
+            # If we are asleep then sleepiness decreases
+            if state == AgentStats.STATE_ASLEEP:
+                sleep_delta = -1
             else:
-                sleep_delta = 1
+                # Scale increase in sleepiness based on amount of energy
+                if energy <= Sleepiness.ENERGY_LEVEL_THRESHOLD:
+                    sleep_delta = 3
+                else:
+                    sleep_delta = 1
 
-            self._sleepiness -= sleep_delta
+            self._sleepiness += sleep_delta
 
-        elif self._sleepiness < Sleepiness.MAX_SLEEPINESS:
-            self._sleepiness += 1
+            # Cap and floor sleepiness
+            self._sleepiness = max(Sleepiness.MIN_SLEEPINESS, min(self._sleepiness , Sleepiness.MAX_SLEEPINESS))
 
         return self._sleepiness
 
 
-class Hunger(DerivedStat):
+class Hunger(TickingStat):
     NAME = "Hunger"
     MAX_HUNGER = 100
     MIN_HUNGER = 0
@@ -59,23 +80,25 @@ class Hunger(DerivedStat):
     def __init__(self):
         super(Hunger, self).__init__(Hunger.NAME, "AGENT")
 
-        self.add_dependency(AgentStats.INPUT_TICK_COUNT)
         self.add_dependency(AgentStats.INPUT_FOOD_CONSUMED)
         self._hunger = 0
 
     def calculate(self):
+        do_calc = super(Hunger, self).calculate()
 
-        food = self.get_dependency_value(AgentStats.INPUT_FOOD_CONSUMED)
+        if do_calc is True:
 
-        if food == 0 and self._hunger < Hunger.MAX_HUNGER:
-            self._hunger += 1
-        else:
-            self._hunger = max(Hunger.MIN_HUNGER, self._hunger - food)
+            food = self.get_dependency_value(AgentStats.INPUT_FOOD_CONSUMED)
+
+            if food == 0 and self._hunger < Hunger.MAX_HUNGER:
+                self._hunger += 1
+            else:
+                self._hunger = max(Hunger.MIN_HUNGER, self._hunger - food)
 
         return self._hunger
 
 
-class Thirst(DerivedStat):
+class Thirst(TickingStat):
     NAME = "Thirst"
     MAX_THIRST = 100
     MIN_THIRST = 0
@@ -83,25 +106,28 @@ class Thirst(DerivedStat):
     def __init__(self):
         super(Thirst, self).__init__(Thirst.NAME, "AGENT")
 
-        self.add_dependency(AgentStats.INPUT_TICK_COUNT)
         self.add_dependency(AgentStats.INPUT_FLUID_CONSUMED)
         self._thirst = 0
 
     def calculate(self):
 
-        fluid = self.get_dependency_value(AgentStats.INPUT_FLUID_CONSUMED)
+        do_calc = super(Thirst, self).calculate()
 
-        if fluid == 0 and self._thirst < Thirst.MAX_THIRST:
-            self._thirst += 1
-        else:
-            self._thirst = max(Thirst.MIN_THIRST, self._thirst - fluid)
+        if do_calc is True:
+
+            fluid = self.get_dependency_value(AgentStats.INPUT_FLUID_CONSUMED)
+
+            if fluid == 0 and self._thirst < Thirst.MAX_THIRST:
+                self._thirst += 1
+            else:
+                self._thirst = max(Thirst.MIN_THIRST, self._thirst - fluid)
 
         return self._thirst
 
 
-class Energy(DerivedStat):
+class Energy(TickingStat):
     NAME = "Energy"
-    INITIAL_ENERGY = 50
+    INITIAL_ENERGY = 200
     MIN_ENERGY = 0
     MAX_ENERGY = 200
     SLEEP_ENERGY_REDUCTION_FACTOR = 0.3
@@ -109,32 +135,35 @@ class Energy(DerivedStat):
     def __init__(self):
         super(Energy, self).__init__(Energy.NAME, "AGENT")
 
-        self.add_dependency(AgentStats.INPUT_TICK_COUNT)
         self.add_dependency(AgentStats.INPUT_ENERGY_GAINED)
         self.add_dependency(AgentStats.INPUT_CURRENT_STATE)
-        self.add_dependency(AgentStats.INPUT_MAX_ENERGY)
+        #self.add_dependency(AgentStats.INPUT_MAX_ENERGY)
         self.add_dependency(Hunger.NAME)
         self._energy = Energy.INITIAL_ENERGY
 
     def calculate(self):
 
-        state = self.get_dependency_value(AgentStats.INPUT_CURRENT_STATE)
-        energy = self.get_dependency_value(AgentStats.INPUT_ENERGY_GAINED)
-        hunger = self.get_dependency_value(Hunger.NAME)
-        max_energy = Energy.MAX_ENERGY
+        do_calc = super(Energy, self).calculate()
 
-        # The more hungry you are the more energy you consume
-        energy_delta = 1
-        if hunger > 30:
-            energy_delta = 2
-        elif hunger > 60:
-            energy_delta = 3
+        if do_calc is True:
 
-        # If you are asleep then only use a fraction of energy
-        if state == AgentStats.STATE_ASLEEP:
-            energy_delta *= Energy.SLEEP_ENERGY_REDUCTION_FACTOR
+            state = self.get_dependency_value(AgentStats.INPUT_CURRENT_STATE)
+            energy = self.get_dependency_value(AgentStats.INPUT_ENERGY_GAINED)
+            hunger = self.get_dependency_value(Hunger.NAME)
+            max_energy = Energy.MAX_ENERGY
 
-        self._energy = max(Energy.MIN_ENERGY, min(self._energy + energy - energy_delta, max_energy))
+            # The more hungry you are the more energy you consume
+            energy_delta = 1
+            if hunger > 30:
+                energy_delta = 2
+            elif hunger > 60:
+                energy_delta = 3
+
+            # If you are asleep then only use a fraction of energy
+            if state == AgentStats.STATE_ASLEEP:
+                energy_delta *= Energy.SLEEP_ENERGY_REDUCTION_FACTOR
+
+            self._energy = max(Energy.MIN_ENERGY, min(self._energy + energy - energy_delta, max_energy))
 
         return self._energy
 
@@ -172,6 +201,7 @@ class NextState(DerivedStat):
 
     SLEEP_THRESHOLD = 80
     STARVATION_THRESHOLD = 100
+    DEHYDRATION_THRESHOLD = 100
     ENERGY_THRESHOLD = 100
 
     def __init__(self):
@@ -181,6 +211,7 @@ class NextState(DerivedStat):
         self.add_dependency(Sleepiness.NAME)
         self.add_dependency(Energy.NAME)
         self.add_dependency(Hunger.NAME)
+        self.add_dependency(Thirst.NAME)
         self.add_dependency(Age.NAME)
         self.add_dependency(AgentStats.INPUT_MAX_AGE)
 
@@ -189,12 +220,16 @@ class NextState(DerivedStat):
         current_state = self.get_dependency_value(AgentStats.INPUT_CURRENT_STATE)
         sleepiness = self.get_dependency_value(Sleepiness.NAME)
         hunger = self.get_dependency_value(Hunger.NAME)
+        thirst = self.get_dependency_value(Thirst.NAME)
         energy = self.get_dependency_value(Energy.NAME)
         age = self.get_dependency_value(Age.NAME)
         max_age = self.get_dependency_value(AgentStats.INPUT_MAX_AGE)
         new_state = current_state
 
-        if hunger >= NextState.STARVATION_THRESHOLD or energy <= 0 or age > max_age:
+        if hunger >= NextState.STARVATION_THRESHOLD or \
+            thirst >= NextState.DEHYDRATION_THRESHOLD or \
+                energy <= 0 or\
+                age > max_age:
             new_state = AgentStats.STATE_DEAD
         elif sleepiness >= NextState.SLEEP_THRESHOLD:
             new_state = AgentStats.STATE_ASLEEP
@@ -250,8 +285,8 @@ class AgentStats(StatEngine):
         for core_stat_name in (AgentStats.INPUT_STATS):
             self.add_stat(CoreStat(core_stat_name, "INPUTS", 0))
 
-        self.update_stat(AgentStats.INPUT_MAX_ENERGY, 100)
-        self.update_stat(AgentStats.INPUT_MAX_AGE, 20)
+        self.update_stat(AgentStats.INPUT_MAX_ENERGY, 200)
+        self.update_stat(AgentStats.INPUT_MAX_AGE, 300)
         self.update_stat(AgentStats.INPUT_CURRENT_STATE, AgentStats.STATE_AWAKE)
 
         # Add derived game stats
