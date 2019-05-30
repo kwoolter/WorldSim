@@ -25,6 +25,14 @@ class Agent:
         self._stats.update_stat(AgentStats.INPUT_FOOD_CONSUMED, 0)
         self._stats.update_stat(AgentStats.INPUT_ENERGY_GAINED, 0)
 
+    def drink(self, fluid_amount : int = 1):
+
+        self._stats.update_stat(AgentStats.INPUT_FLUID_CONSUMED, fluid_amount)
+        self._stats.update_stat(AgentStats.INPUT_ENERGY_GAINED, int(fluid_amount / 3))
+        self.tick()
+        self._stats.update_stat(AgentStats.INPUT_FLUID_CONSUMED, 0)
+        self._stats.update_stat(AgentStats.INPUT_ENERGY_GAINED, 0)
+
     def sleep(self, ticks : int = 1, awaken : bool = True):
 
         print("Sleeping for {0} ticks...".format(ticks))

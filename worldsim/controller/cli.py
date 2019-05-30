@@ -60,6 +60,13 @@ class WSCLI(cmd.Cmd):
             agent = self.model.get_agent(name)
             agent.eat(food)
 
+    def do_drink(self, args):
+
+        name = pick("Agent", self.model.get_agent_names())
+        if name is not None:
+            fluid = int(input("Fluid to drink?"))
+            agent = self.model.get_agent(name)
+            agent.drink(fluid)
 
     def do_sleep(self, args):
 

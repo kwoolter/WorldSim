@@ -1,6 +1,5 @@
-import random
-
 from .StatEngine import *
+
 
 class Age(DerivedStat):
     NAME = "Age"
@@ -12,10 +11,10 @@ class Age(DerivedStat):
         self._age = 0
 
     def calculate(self):
-
         self._age += 1
 
         return self._age
+
 
 class Sleepiness(DerivedStat):
     NAME = "Sleepiness"
@@ -76,6 +75,30 @@ class Hunger(DerivedStat):
         return self._hunger
 
 
+class Thirst(DerivedStat):
+    NAME = "Thirst"
+    MAX_THIRST = 100
+    MIN_THIRST = 0
+
+    def __init__(self):
+        super(Thirst, self).__init__(Thirst.NAME, "AGENT")
+
+        self.add_dependency(AgentStats.INPUT_TICK_COUNT)
+        self.add_dependency(AgentStats.INPUT_FLUID_CONSUMED)
+        self._thirst = 0
+
+    def calculate(self):
+
+        fluid = self.get_dependency_value(AgentStats.INPUT_FLUID_CONSUMED)
+
+        if fluid == 0 and self._thirst < Thirst.MAX_THIRST:
+            self._thirst += 1
+        else:
+            self._thirst = max(Thirst.MIN_THIRST, self._thirst - fluid)
+
+        return self._thirst
+
+
 class Energy(DerivedStat):
     NAME = "Energy"
     INITIAL_ENERGY = 50
@@ -115,6 +138,7 @@ class Energy(DerivedStat):
 
         return self._energy
 
+
 class ChangeState(DerivedStat):
     NAME = "Change State"
 
@@ -126,10 +150,11 @@ class ChangeState(DerivedStat):
         super(ChangeState, self).__init__(ChangeState.NAME, "AGENT")
 
         self.add_dependency(AgentStats.INPUT_CURRENT_STATE)
+        self.add_dependency(AgentStats.INPUT_TICK_COUNT)
+
         self._current_state = AgentStats.STATE_AWAKE
 
     def calculate(self):
-
         current_state = self.get_dependency_value(AgentStats.INPUT_CURRENT_STATE)
 
         is_changed = False
@@ -140,6 +165,7 @@ class ChangeState(DerivedStat):
         self._current_state = current_state
 
         return is_changed
+
 
 class NextState(DerivedStat):
     NAME = "Next State"
@@ -165,10 +191,10 @@ class NextState(DerivedStat):
         hunger = self.get_dependency_value(Hunger.NAME)
         energy = self.get_dependency_value(Energy.NAME)
         age = self.get_dependency_value(Age.NAME)
-        max_age  = self.get_dependency_value(AgentStats.INPUT_MAX_AGE)
+        max_age = self.get_dependency_value(AgentStats.INPUT_MAX_AGE)
         new_state = current_state
 
-        if hunger >= NextState.STARVATION_THRESHOLD or energy <= 0 or age > max_age :
+        if hunger >= NextState.STARVATION_THRESHOLD or energy <= 0 or age > max_age:
             new_state = AgentStats.STATE_DEAD
         elif sleepiness >= NextState.SLEEP_THRESHOLD:
             new_state = AgentStats.STATE_ASLEEP
@@ -179,7 +205,6 @@ class NextState(DerivedStat):
 
 
 class AgentStats(StatEngine):
-
     # States
     STATE_DEAD = 100
     STATE_AWAKE = 1
@@ -188,6 +213,7 @@ class AgentStats(StatEngine):
     # Input Stats
     INPUT_TICK_COUNT = "Tick Count"
     INPUT_FOOD_CONSUMED = "Food eaten"
+    INPUT_FLUID_CONSUMED = "Fluid consumed"
     INPUT_CURRENT_STATE = "State"
     INPUT_MAX_ENERGY = "Maximum Energy"
     INPUT_MAX_AGE = "Maximum Age"
@@ -204,16 +230,15 @@ class AgentStats(StatEngine):
     EVENT_DIED = "Died"
     EVENT_FELL_ASLEEP = "Fell Asleep"
 
-    INPUT_STATS = (INPUT_CURRENT_STATE, INPUT_TICK_COUNT, INPUT_FOOD_CONSUMED, INPUT_ENERGY_GAINED,
-                   INPUT_MAX_ENERGY, INPUT_MAX_AGE)
+    INPUT_STATS = (INPUT_CURRENT_STATE, INPUT_TICK_COUNT, INPUT_FOOD_CONSUMED, INPUT_FLUID_CONSUMED,
+                   INPUT_ENERGY_GAINED, INPUT_MAX_ENERGY, INPUT_MAX_AGE)
     CORE_STATS = (INPUT_TICK_COUNT, INPUT_CURRENT_STATE, STAT_STRENGTH, STAT_INTELLIGENCE)
     EVENT_STATS = (ChangeState.NAME, EVENT_BORN, EVENT_DIED, EVENT_FELL_ASLEEP)
-    OUTPUT_STATS = (Age.NAME, Energy.NAME, Sleepiness.NAME, Hunger.NAME)
+    OUTPUT_STATS = (Age.NAME, Energy.NAME, Sleepiness.NAME, Hunger.NAME, Thirst.NAME)
 
-    STATE_TO_STATE_NAME = {STATE_ASLEEP: "Asleep", STATE_AWAKE : "Awake", STATE_DEAD : "Dead"}
+    STATE_TO_STATE_NAME = {STATE_ASLEEP: "Asleep", STATE_AWAKE: "Awake", STATE_DEAD: "Dead"}
 
-
-    def __init__(self, name : str):
+    def __init__(self, name: str):
         super(AgentStats, self).__init__(name)
 
     def initialise(self):
@@ -231,15 +256,9 @@ class AgentStats(StatEngine):
 
         # Add derived game stats
         self.add_stat(Age())
-        self.add_stat(Hunger())
-        self.add_stat(Sleepiness())
         self.add_stat(Energy())
+        self.add_stat(Hunger())
+        self.add_stat(Thirst())
+        self.add_stat(Sleepiness())
         self.add_stat(NextState())
         self.add_stat(ChangeState())
-
-
-
-
-
-
-
