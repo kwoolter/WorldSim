@@ -84,6 +84,12 @@ class WSCLI(cmd.Cmd):
             agent.examine()
 
 
+    def do_temp(self, args):
+
+        new_temperature = float(input("New temperature?"))
+        self.model.set_temperature(new_temperature)
+
+
     def do_quit(self, arg):
         """Quit the game"""
         try:

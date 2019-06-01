@@ -17,6 +17,9 @@ class Agent:
         self._stats.update_stat(AgentStats.INPUT_TICK_COUNT, self._tick_count)
         self._state = self._stats.get_stat(NextState.NAME).value
 
+    def update_stat(self, stat : BaseStat):
+        self._stats.update_stat(stat.name, stat.value)
+
     def eat(self, food_amount : int = 1):
 
         self._stats.update_stat(AgentStats.INPUT_FOOD_CONSUMED, food_amount)

@@ -133,9 +133,10 @@ class YearChanged(DerivedStat):
 class WorldStats(StatEngine):
     # World level inputs
     INPUT_TICK_COUNT = "Tick Count"
+    INPUT_AMBIENT_TEMPERATURE = "Ambient Temperature"
 
     # Season level inputs
-    INPUTS = (INPUT_TICK_COUNT, INPUT_TICK_COUNT)
+    INPUTS = (INPUT_TICK_COUNT, INPUT_AMBIENT_TEMPERATURE)
 
     # Event stats - order determines which gets fired first
     EVENTS = (DayChanged.NAME, SeasonChanged.NAME, YearChanged.NAME)
@@ -147,6 +148,8 @@ class WorldStats(StatEngine):
         # Add the core input stats
         for core_stat_name in WorldStats.INPUTS:
             self.add_stat(CoreStat(core_stat_name, "INPUTS", 0))
+
+        self.update_stat(WorldStats.INPUT_AMBIENT_TEMPERATURE, 30)
 
         # Add derived game stats
         self.add_stat(DayOfYear())

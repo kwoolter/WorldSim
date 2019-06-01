@@ -131,6 +131,10 @@ class World():
     def get_agent_names(self):
         return list(self._agents.keys())
 
+    def set_temperature(self, new_temperature : float):
+
+        self._stats.update_stat(WorldStats.INPUT_AMBIENT_TEMPERATURE, new_temperature)
+
     def tick(self):
 
         if self.state != World.STATE_PLAYING:
@@ -150,8 +154,8 @@ class World():
                                            "EVENT"))
 
         for agent in self._agents.values():
+            self.update_world_inputs(agent)
             agent.tick()
-
 
         for agent in self._agents.values():
             # See if any of the event stats fired as a result if the tick...
@@ -166,6 +170,12 @@ class World():
         #                             "World '{0}' ticked to {1}".format(self.name, self._tick_count),
         #                             World.EVENT_TICK))
 
+
+    def update_world_inputs(self, agent : Agent):
+        for stat_name in WorldStats.INPUTS:
+            stat = self._stats.get_stat(stat_name)
+            if stat is not None:
+                agent.update_stat(stat)
 
 
     def pause(self, is_paused: bool = True):
