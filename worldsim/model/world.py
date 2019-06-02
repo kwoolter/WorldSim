@@ -172,9 +172,13 @@ class World():
 
 
     def update_world_inputs(self, agent : Agent):
-        for stat_name in WorldStats.INPUTS:
+
+        AGENT_STATS = {Temperature.NAME, HourOfDay.NAME}
+
+        for stat_name in AGENT_STATS:
             stat = self._stats.get_stat(stat_name)
             if stat is not None:
+                #print(str(stat))
                 agent.update_stat(stat)
 
 

@@ -288,6 +288,7 @@ class AgentStats(StatEngine):
     INPUT_MAX_AGE = "Maximum Age"
     INPUT_ENERGY_GAINED = "Energy consumed"
     INPUT_AMBIENT_TEMPERATURE = "Ambient Temperature"
+    INPUT_HOUR_OF_DAY = "Hour of Day"
 
     # Core Stats
     STAT_STRENGTH = "Strength"
@@ -302,7 +303,7 @@ class AgentStats(StatEngine):
 
     INPUT_STATS = (INPUT_CURRENT_STATE, INPUT_TICK_COUNT, INPUT_FOOD_CONSUMED, INPUT_FLUID_CONSUMED,
                    INPUT_ENERGY_GAINED, INPUT_MAX_ENERGY, INPUT_MAX_AGE, INPUT_TICK_COUNT, INPUT_CURRENT_STATE,
-                   INPUT_AMBIENT_TEMPERATURE)
+                   INPUT_AMBIENT_TEMPERATURE, INPUT_HOUR_OF_DAY)
     CORE_STATS = (STAT_STRENGTH, STAT_INTELLIGENCE)
     EVENT_STATS = (ChangeState.NAME, EVENT_BORN, EVENT_DIED, EVENT_FELL_ASLEEP)
     OUTPUT_STATS = (Age.NAME, Energy.NAME, Sleepiness.NAME, Hunger.NAME, Thirst.NAME, Temperature.NAME)

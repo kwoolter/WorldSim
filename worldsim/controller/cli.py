@@ -12,7 +12,6 @@ class WSCLI(cmd.Cmd):
 
         self.model = model.World()
 
-
     def run(self):
         """Run the game"""
         self.cmdloop()
@@ -25,6 +24,7 @@ class WSCLI(cmd.Cmd):
         return cmd.Cmd.postcmd(self, stop, line)
 
     def do_start(self, arg):
+        """Start a new world with the name specified e.g. start MyWorld"""
         args = arg.split(" ")
         self.model.initialise(args[0])
         self.model.run()
@@ -32,10 +32,8 @@ class WSCLI(cmd.Cmd):
     def do_pause(self, args):
         self.model.pause(is_paused=True)
 
-    def do_run(self, args):
-        self.model.run()
-
     def do_tick(self, arg):
+        """Do a specified number of ticks on the world e.g. tick 5"""
 
         if len(arg) == 0:
             i = 1
@@ -53,6 +51,7 @@ class WSCLI(cmd.Cmd):
         self.model.print()
 
     def do_eat(self, args):
+        """Make a specified agent eat"""
 
         name = pick("Agent", self.model.get_agent_names())
         if name is not None:
@@ -61,6 +60,7 @@ class WSCLI(cmd.Cmd):
             agent.eat(food)
 
     def do_drink(self, args):
+        """Make a specified agent drink"""
 
         name = pick("Agent", self.model.get_agent_names())
         if name is not None:
@@ -69,6 +69,7 @@ class WSCLI(cmd.Cmd):
             agent.drink(fluid)
 
     def do_sleep(self, args):
+        """Make a selected agent go to sleep"""
 
         name = pick("Agent", self.model.get_agent_names())
         if name is not None:
@@ -77,6 +78,7 @@ class WSCLI(cmd.Cmd):
             agent.sleep(ticks)
 
     def do_examine(self, args):
+        """Examine a selected agent"""
 
         name = pick("Agent", self.model.get_agent_names())
         if name is not None:
@@ -85,6 +87,7 @@ class WSCLI(cmd.Cmd):
 
 
     def do_temp(self, args):
+        """Change the ambient temperature of the world"""
 
         new_temperature = float(input("New temperature?"))
         self.model.set_temperature(new_temperature)
