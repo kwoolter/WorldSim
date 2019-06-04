@@ -8,6 +8,9 @@
 
 import logging
 import datetime
+import csv
+from copy import deepcopy
+from .utils import is_numeric
 
 '''
 The basic details of a stat
@@ -500,4 +503,121 @@ class StatEngine:
             for stat_name in sorted(stats.keys()):
                 stat = stats[stat_name]
                 print("\t"+ stat.name + "=" + str(stat.value))
+
+
+
+class CSVStatFactory(object):
+    '''
+    Factory class for loading in all of the stats associated with a class
+    '''
+
+    def __init__(self, name: str, file_name: str, stat_category: str = "Abilities"):
+        self.name = name
+        self.file_name = file_name
+        self.stat_category = stat_category
+        self._rpg_object_stats = {}
+        self._rpg_object_attributes = {}
+
+    def load(self):
+        '''
+        Read in the content of the CSV file and load it into a dictionary key by the value in the first column
+        '''
+
+        logging.info(("%s.load(): Loading %s from %s"), __class__, self.name, self.file_name)
+
+        # Attempt to open the file
+        with open(self.file_name, 'r') as rpg_object_file:
+
+            # Load all row in as a dictionary
+            reader = csv.DictReader(rpg_object_file)
+
+            # Get the list of column headers
+            header = reader.fieldnames
+
+            # For each row in the file....
+            for row in reader:
+
+                # The RPG object name to use is in the first column
+                rpg_object_name = row.get(header[0])
+
+                # loop through all of the header fields except the first column...
+                for i in range(1, len(header)):
+
+                    # Get the next field value from the header row
+                    field = header[i]
+                    value = row.get(field)
+
+                    # If the vield value is numeric...
+                    if is_numeric(value) is not None:
+
+                        # if we don't already have a set of stats for this RPG object in the dictionary then create one
+                        if rpg_object_name not in self._rpg_object_stats.keys():
+                            new_rpg_object_stats = []
+                            self._rpg_object_stats[rpg_object_name] = new_rpg_object_stats
+
+                        # Get the set of stats for this RPG object
+                        rpg_object_stats = self._rpg_object_stats[rpg_object_name]
+
+                        # Create a new core stat from the field name and the value of this field in the row
+                        new_stat = CoreStat(field, self.stat_category, int(value))
+
+                        # ...and add it to the list of stats for this RPG object
+                        rpg_object_stats.append(new_stat)
+
+                        logging.info("%s.load: RPG %s %s - loaded stats %s=%i", __class__, \
+                                     self.name, rpg_object_name, new_stat.name, new_stat.value)
+                    else:
+
+                        # if we don't already have a set of attributes for this RPG object in the dictionary then create one
+                        if rpg_object_name not in self._rpg_object_attributes.keys():
+                            new_rpg_object_attributes = {}
+                            self._rpg_object_attributes[rpg_object_name] = new_rpg_object_attributes
+
+                        # Get the set of stats for this RPG object
+                        rpg_object_attributes = self._rpg_object_attributes[rpg_object_name]
+
+                        # Add the new field/value to the list of attributes
+                        rpg_object_attributes[field] = value
+
+                        logging.info("%s.load: RPG %s %s - loaded attribute %s=%s", __class__, \
+                                     self.name, rpg_object_name, field, value)
+
+            # Close the file
+            rpg_object_file.close()
+
+    # Return the list of object names for which stats are available
+    def get_object_names(self):
+        return self._rpg_object_stats.keys()
+
+    # Return the list of stats for the specified object name
+    def get_stats_by_name(self, object_name: str):
+        if object_name in self._rpg_object_stats.keys():
+            return deepcopy(self._rpg_object_stats[object_name])
+        else:
+            return None
+
+    # Return the list of attributes for the specifed object name
+    def get_attributes_by_name(self, object_name: str):
+        if object_name in self._rpg_object_attributes.keys():
+            return deepcopy(self._rpg_object_attributes[object_name])
+        else:
+            return None
+
+    # Return a list of objects that have a stats that matches the one specified
+    def get_matching_objects(self, stat: BaseStat):
+
+        matches = []
+
+        stat_name = stat.name
+        stat_value = stat.value
+
+        # For each object in the dictionary...
+        for rpg_object_name in self._rpg_object_stats.keys():
+            # Loop through it's stats...
+            for rpg_stat in self._rpg_object_stats[rpg_object_name]:
+                # ...and if a matching stats is found add the name of the object to the list of matches...
+                if rpg_stat.name == stat_name and rpg_stat.value == stat_value:
+                    matches.append(rpg_object_name)
+
+        return sorted(matches)
 

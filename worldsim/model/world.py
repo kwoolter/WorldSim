@@ -6,6 +6,7 @@ from .world_stats import *
 from .map import *
 
 import math
+import os
 
 class World():
 
@@ -14,6 +15,8 @@ class World():
     STATE_PLAYING = "PLAYING"
     STATE_PAUSED = "PAUSED"
     STATE_DESTROYED = "DESTROYED"
+
+    GAME_DATA_DIR = ".\\data\\"
 
     EVENT_TICK = "TICK"
 
@@ -24,6 +27,8 @@ class World():
         self._stats = WorldStats(name)
         self._agents = {}
         self._map = None
+
+        self._agent_factory = None
 
     @property
     def state(self):
@@ -102,6 +107,10 @@ class World():
         self._map = WorldMap(self.name)
         self._map.initialise()
 
+        filename= os.path.join(os.path.dirname(__file__),World.GAME_DATA_DIR, "agents.csv")
+        self._agent_factory = CSVStatFactory("Agents", filename)
+        self._agent_factory.load()
+
         self.load_agents()
 
         EventQueue.add_event(Event(World.STATE_INITIALISED,
@@ -115,9 +124,15 @@ class World():
         self.pause(is_paused=False)
 
     def load_agents(self):
-        for i in range(0,2):
-            new_agent = Agent("agent {0}".format(i), "default")
-            self.add_agent(new_agent)
+
+        types = self._agent_factory.get_object_names()
+
+        for type in types:
+            for i in range(0,2):
+                new_agent = Agent("{0} {1}".format(type, i), type)
+                stats = self._agent_factory.get_stats_by_name(type)
+                new_agent.add_stats(stats)
+                self.add_agent(new_agent)
 
     def add_agent(self, new_agent : Agent):
         self._agents[new_agent.name] = new_agent

@@ -20,6 +20,21 @@ class Agent:
     def update_stat(self, stat : BaseStat):
         self._stats.update_stat(stat.name, stat.value)
 
+    def add_stats(self, stat_list: list, overwrite: bool = True):
+        # Load in stats from a provided list
+        # Default is to overwrite what is there already with option to increment
+
+        if stat_list is None:
+            return
+
+        for stat in stat_list:
+            # If we are overwriting or the stat does not exist then add the stat
+            if overwrite is True or self._stats.get_stat(stat.name) is None:
+                self._stats.add_stat(stat)
+            # Else increment the existing stat
+            else:
+                self._stats.increment_stat(stat.name, stat.value)
+
     def eat(self, food_amount : int = 1):
 
         self._stats.update_stat(AgentStats.INPUT_FOOD_CONSUMED, food_amount)
