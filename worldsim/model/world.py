@@ -176,6 +176,7 @@ class World():
             # See if any of the event stats fired as a result if the tick...
             for event_stat_name in AgentStats.EVENT_STATS:
                 stat = agent._stats.get_stat(event_stat_name)
+                #print(str(stat))
                 if stat is not None and stat.value is True:
                     EventQueue.add_event(Event(stat.name,
                                                "Event stat fired: {0}={1}".format(stat.name, stat.value),

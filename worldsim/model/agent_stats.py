@@ -21,6 +21,23 @@ class TickingStat(DerivedStat):
     def tick_calculate(self):
         raise Exception("need to override TickStat class method tick_calculate()!")
 
+class AttributePercent(DerivedStat):
+
+    def __init__(self, attribute_name : str):
+
+        self.attribute_name = attribute_name
+
+        super(AttributePercent, self).__init__("{0} Percent".format(attribute_name), "AGENT")
+
+        self.add_dependency(attribute_name)
+        self.add_dependency("Maximum {0}".format(attribute_name))
+
+    def calculate(self):
+
+        attribute = self.get_dependency_value(self.attribute_name)
+        attribute_max = self.get_dependency_value("Maximum {0}".format(self.attribute_name))
+
+        return attribute * 100/attribute_max
 
 class Age(DerivedStat):
     NAME = "Age"
@@ -79,7 +96,6 @@ class Temperature(TickingStat):
 
 class Sleepiness(TickingStat):
     NAME = "Sleepiness"
-    MAX_SLEEPINESS = 100
     MIN_SLEEPINESS = 0
     ENERGY_LEVEL_THRESHOLD = 20
 
@@ -87,11 +103,13 @@ class Sleepiness(TickingStat):
         super(Sleepiness, self).__init__(Sleepiness.NAME, "AGENT")
 
         self.add_dependency(AgentStats.INPUT_CURRENT_STATE)
+        self.add_dependency("Maximum {0}".format(self.name))
         self.add_dependency(Energy.NAME)
         self._sleepiness = 0
 
     def tick_calculate(self):
 
+        max_value = self.get_dependency_value("Maximum {0}".format(self.name))
         state = self.get_dependency_value(AgentStats.INPUT_CURRENT_STATE)
         energy = self.get_dependency_value(Energy.NAME)
 
@@ -108,7 +126,7 @@ class Sleepiness(TickingStat):
         self._sleepiness += sleep_delta
 
         # Cap and floor sleepiness
-        self._sleepiness = max(Sleepiness.MIN_SLEEPINESS, min(self._sleepiness , Sleepiness.MAX_SLEEPINESS))
+        self._sleepiness = max(Sleepiness.MIN_SLEEPINESS, min(self._sleepiness , max_value))
 
         return self._sleepiness
 
@@ -121,37 +139,39 @@ class Hunger(TickingStat):
     def __init__(self):
         super(Hunger, self).__init__(Hunger.NAME, "AGENT")
 
+        self.add_dependency("Maximum {0}".format(self.name))
         self.add_dependency(AgentStats.INPUT_FOOD_CONSUMED)
         self._hunger = 0
 
     def tick_calculate(self):
 
+        max_value = self.get_dependency_value("Maximum {0}".format(self.name))
         food = self.get_dependency_value(AgentStats.INPUT_FOOD_CONSUMED)
 
-        if food == 0 and self._hunger < Hunger.MAX_HUNGER:
+        if food == 0 and self._hunger < max_value:
             self._hunger += 1
         else:
             self._hunger = max(Hunger.MIN_HUNGER, self._hunger - food)
 
         return self._hunger
 
-
 class Thirst(TickingStat):
     NAME = "Thirst"
-    MAX_THIRST = 100
     MIN_THIRST = 0
 
     def __init__(self):
         super(Thirst, self).__init__(Thirst.NAME, "AGENT")
 
+        self.add_dependency("Maximum {0}".format(self.name))
         self.add_dependency(AgentStats.INPUT_FLUID_CONSUMED)
         self._thirst = 0
 
     def tick_calculate(self):
 
+        max_value = self.get_dependency_value("Maximum {0}".format(self.name))
         fluid = self.get_dependency_value(AgentStats.INPUT_FLUID_CONSUMED)
 
-        if fluid == 0 and self._thirst < Thirst.MAX_THIRST:
+        if fluid == 0 and self._thirst < max_value:
             self._thirst += 1
         else:
             self._thirst = max(Thirst.MIN_THIRST, self._thirst - fluid)
@@ -198,12 +218,8 @@ class Energy(TickingStat):
         return self._energy
 
 
-class ChangeState(DerivedStat):
+class ChangeState(TickingStat):
     NAME = "Change State"
-
-    SLEEP_THRESHOLD = 80
-    STARVATION_THRESHOLD = 100
-    ENERGY_THRESHOLD = 100
 
     def __init__(self):
         super(ChangeState, self).__init__(ChangeState.NAME, "AGENT")
@@ -213,13 +229,14 @@ class ChangeState(DerivedStat):
 
         self._current_state = AgentStats.STATE_AWAKE
 
-    def calculate(self):
+    def tick_calculate(self):
         current_state = self.get_dependency_value(AgentStats.INPUT_CURRENT_STATE)
 
         is_changed = False
 
         if self._current_state != current_state:
             is_changed = True
+            #print("State changed from {0} to {1}".format(self._current_state, current_state))
 
         self._current_state = current_state
 
@@ -239,31 +256,30 @@ class NextState(DerivedStat):
         super(NextState, self).__init__(NextState.NAME, "AGENT")
 
         self.add_dependency(AgentStats.INPUT_CURRENT_STATE)
-        self.add_dependency(Sleepiness.NAME)
-        self.add_dependency(Energy.NAME)
-        self.add_dependency(Hunger.NAME)
-        self.add_dependency(Thirst.NAME)
+        self.add_dependency("{0} Percent".format(Sleepiness.NAME))
+        self.add_dependency("{0} Percent".format(Energy.NAME))
+        self.add_dependency("{0} Percent".format(Hunger.NAME))
+        self.add_dependency("{0} Percent".format(Thirst.NAME))
         self.add_dependency(Temperature.NAME)
-        self.add_dependency(Age.NAME)
-        self.add_dependency(AgentStats.INPUT_MAX_AGE)
+        self.add_dependency("{0} Percent".format(Age.NAME))
+        self.add_dependency("{0} Percent".format(Age.NAME))
 
     def calculate(self):
 
         current_state = self.get_dependency_value(AgentStats.INPUT_CURRENT_STATE)
-        sleepiness = self.get_dependency_value(Sleepiness.NAME)
-        hunger = self.get_dependency_value(Hunger.NAME)
-        thirst = self.get_dependency_value(Thirst.NAME)
-        energy = self.get_dependency_value(Energy.NAME)
+        sleepiness = self.get_dependency_value("{0} Percent".format(Sleepiness.NAME))
+        hunger = self.get_dependency_value("{0} Percent".format(Hunger.NAME))
+        thirst = self.get_dependency_value("{0} Percent".format(Thirst.NAME))
+        energy = self.get_dependency_value("{0} Percent".format(Energy.NAME))
         temperature = self.get_dependency_value(Temperature.NAME)
-        age = self.get_dependency_value(Age.NAME)
-        max_age = self.get_dependency_value(AgentStats.INPUT_MAX_AGE)
+        age = self.get_dependency_value("{0} Percent".format(Age.NAME))
         new_state = current_state
 
-        if hunger >= NextState.STARVATION_THRESHOLD or \
-            thirst >= NextState.DEHYDRATION_THRESHOLD or \
+        if hunger >= 100 or \
+            thirst >= 100 or \
             temperature >= NextState.TEMPERATURE_THRESHOLD or \
                 energy <= 0 or\
-                age > max_age:
+                age > 100:
             new_state = AgentStats.STATE_DEAD
         elif sleepiness >= NextState.SLEEP_THRESHOLD:
             new_state = AgentStats.STATE_ASLEEP
@@ -285,14 +301,18 @@ class AgentStats(StatEngine):
     INPUT_FLUID_CONSUMED = "Fluid consumed"
     INPUT_CURRENT_STATE = "State"
     INPUT_MAX_ENERGY = "Maximum Energy"
-    INPUT_MAX_AGE = "Maximum Age"
     INPUT_ENERGY_GAINED = "Energy consumed"
+    INPUT_MAX_AGE = "Maximum Age"
+    INPUT_MAX_HUNGER = "Maximum Hunger"
+    INPUT_MAX_SLEEPINESS = "Maximum Sleepiness"
+    INPUT_MAX_THIRST = "Maximum Thirst"
     INPUT_AMBIENT_TEMPERATURE = "Ambient Temperature"
     INPUT_HOUR_OF_DAY = "Hour of Day"
 
     # Core Stats
     STAT_STRENGTH = "Strength"
     STAT_INTELLIGENCE = "Intelligence"
+    STAT_SPEED = "Speed"
 
     # Output Stats
 
@@ -302,10 +322,13 @@ class AgentStats(StatEngine):
     EVENT_FELL_ASLEEP = "Fell Asleep"
 
     INPUT_STATS = (INPUT_CURRENT_STATE, INPUT_TICK_COUNT, INPUT_FOOD_CONSUMED, INPUT_FLUID_CONSUMED,
-                   INPUT_ENERGY_GAINED, INPUT_MAX_ENERGY, INPUT_MAX_AGE, INPUT_TICK_COUNT, INPUT_CURRENT_STATE,
+                   INPUT_ENERGY_GAINED,
+                   INPUT_MAX_ENERGY, INPUT_MAX_AGE,INPUT_MAX_HUNGER,INPUT_MAX_SLEEPINESS, INPUT_MAX_THIRST,
+                   INPUT_TICK_COUNT, INPUT_CURRENT_STATE,
                    INPUT_AMBIENT_TEMPERATURE, INPUT_HOUR_OF_DAY)
-    CORE_STATS = (STAT_STRENGTH, STAT_INTELLIGENCE)
-    EVENT_STATS = (ChangeState.NAME, EVENT_BORN, EVENT_DIED, EVENT_FELL_ASLEEP)
+
+    CORE_STATS = (STAT_STRENGTH, STAT_INTELLIGENCE, STAT_SPEED)
+    EVENT_STATS = (ChangeState.NAME, ChangeState.NAME)
     OUTPUT_STATS = (Age.NAME, Energy.NAME, Sleepiness.NAME, Hunger.NAME, Thirst.NAME, Temperature.NAME)
 
     STATE_TO_STATE_NAME = {STATE_ASLEEP: "Asleep", STATE_AWAKE: "Awake", STATE_DEAD: "Dead"}
@@ -336,3 +359,6 @@ class AgentStats(StatEngine):
         self.add_stat(Temperature())
         self.add_stat(NextState())
         self.add_stat(ChangeState())
+
+        for attribute_name in AgentStats.OUTPUT_STATS:
+            self.add_stat(AttributePercent(attribute_name))

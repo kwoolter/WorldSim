@@ -1,5 +1,5 @@
-Type,Category,Age,Temperature,Sleepiness,Energy,Hunger,Thirst
-Cow,Animal,15,40,200,50,20,20
-Sheep,Animal,10,30,200,50,20,20
-Wolf,Animal,10,30,100,50,30,30
-Human,Humanoid,70,40,100,100,40,40
+Type,Category,Maximum Age,Maximum Temperature,Maximum Sleepiness,Maximum Energy,Maximum Hunger,Maximum Thirst,Strength,Intelligence,Speed
+Cow,Animal,1500,40,200,50,20,20,50,10,10
+Sheep,Animal,1000,30,200,50,20,20,20,10,15
+Wolf,Animal,300,30,100,50,30,30,30,20,30
+Human,Humanoid,10000,40,100,100,40,40,40,50,20
